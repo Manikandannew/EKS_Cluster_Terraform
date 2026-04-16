@@ -9,7 +9,7 @@ terraform {
   backend "s3" {
     bucket = "12-04-26"
     key    = "ajs/terraform.tfstate"
-    region = "us-east-1"   
+    region = "ap-southeast-1"   
   }
 }
 
