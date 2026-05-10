@@ -1,112 +1,104 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout()
+    }
+
     parameters {
-            booleanParam(name: 'VALIDATE_TERRAFORM', defaultValue: false, description: 'Check to validate Terraform configurations for syntax errors and consistency')
-            booleanParam(name: 'PLAN_TERRAFORM', defaultValue: false, description: 'Check to plan Terraform changes and preview the infrastructure modifications')
-            booleanParam(name: 'APPLY_TERRAFORM', defaultValue: false, description: 'Check to apply Terraform changes and provision the EKS cluster on AWS')
-            booleanParam(name: 'DESTROY_TERRAFORM', defaultValue: false, description: 'Check to destroy the Terraform-managed EKS cluster and related resources')
+        booleanParam(name: 'VALIDATE_TERRAFORM', defaultValue: false, description: 'Check to validate Terraform configurations for syntax errors and consistency')
+        booleanParam(name: 'PLAN_TERRAFORM', defaultValue: false, description: 'Check to plan Terraform changes and preview the infrastructure modifications')
+        booleanParam(name: 'APPLY_TERRAFORM', defaultValue: false, description: 'Check to apply Terraform changes and provision the EKS cluster on AWS')
+        booleanParam(name: 'DESTROY_TERRAFORM', defaultValue: false, description: 'Check to destroy the Terraform-managed EKS cluster and related resources')
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                // Clean workspace before cloning (optional)
                 deleteDir()
 
-                // Clone the Git repository
                 git branch: 'main',
                     url: 'https://github.com/Manikandannew/EKS_Cluster_Terraform.git'
 
-                sh "ls -lart"
+                sh 'ls -lart'
             }
         }
 
         stage('Terraform Init') {
-                    steps {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]){
-                            
-                            sh 'echo "=================Terraform Init=================="'
-                            sh 'terraform init'
-                        
+            steps {
+                retry(2) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
+                        sh 'echo "=================Terraform Init=================="'
+                        sh 'terraform init -input=false'
                     }
                 }
+            }
         }
+
         stage('Terraform Validate') {
-    steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
-            
-                sh 'echo "=================Terraform Validate=================="'
-                sh 'terraform validate'
-            
-        }
-    }
-}
-        stage('Terraform Plan') {
+            when {
+                expression { params.VALIDATE_TERRAFORM }
+            }
             steps {
-                script {
-                    if (params.PLAN_TERRAFORM) {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]){
-                            
-                                sh 'echo "=================Terraform Plan=================="'
-                                sh 'terraform plan'
-                            
-                        }
-                    }
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
+                    sh 'echo "=================Terraform Validate=================="'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            when {
+                expression { params.PLAN_TERRAFORM }
+            }
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
+                    sh 'echo "=================Terraform Plan=================="'
+                    sh 'terraform plan'
                 }
             }
         }
 
         stage('Terraform Apply') {
+            when {
+                expression { params.APPLY_TERRAFORM }
+            }
             steps {
-                script {
-                    if (params.APPLY_TERRAFORM) {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]){
-                            
-                                sh 'echo "=================Terraform Apply=================="'
-                                sh 'terraform apply -auto-approve'
-                                sh 'echo "Saving Terraform output to output.txt"'
-                                sh 'terraform output > output.txt'
-                                sh 'ls -lart'
-                        }
-                    }
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
+                    sh 'echo "=================Terraform Apply=================="'
+                    sh 'terraform apply -auto-approve'
+                    sh 'echo "Saving Terraform output to output.txt"'
+                    sh 'terraform output > output.txt'
+                    sh 'ls -lart'
                 }
             }
         }
 
         stage('Terraform Destroy') {
-    steps {
-        script {
-            if (params.DESTROY_TERRAFORM) {
-               withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
-                    
-                        sh 'echo "=================Terraform Destroy=================="'
-                        sh 'terraform destroy -auto-approve'
-                    
+            when {
+                expression { params.DESTROY_TERRAFORM }
+            }
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
+                    sh 'echo "=================Terraform Destroy=================="'
+                    sh 'terraform destroy -auto-approve'
                 }
-                 // List the workspace contents before cleaning
                 sh 'echo "===== Before Cleaning Workspace ====="'
                 sh 'ls -lart'
-                
-                // Clean workspace only after Terraform destroy
-                cleanWs() // This will clean the workspace, including the Terraform state files
-                
-                // List the workspace contents after cleaning to verify
+                cleanWs()
                 sh 'echo "===== After Cleaning Workspace ====="'
                 sh 'ls -lart'
             }
         }
     }
-}
-    }
-        post {
+
+    post {
         success {
             echo 'Terraform executed successfully!'
         }
         failure {
             echo 'Terraform execution failed!'
         }
-        
     }
-
 }
+
