@@ -16,7 +16,7 @@ pipeline {
 
                 // Clone the Git repository
                 git branch: 'main',
-                    url: 'https://github.com/VenkatVGS/EKS_Cluster_Terraform.git'
+                    url: 'https://github.com/Manikandannew/EKS_Cluster_Terraform.git'
 
                 sh "ls -lart"
             }
