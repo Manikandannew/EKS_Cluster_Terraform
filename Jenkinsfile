@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     parameters {
-            booleanParam(name: 'VALIDATE_TERRAFORM', defaultValue: false, description: 'Check To Validate Terraform Changes')
-            booleanParam(name: 'PLAN_TERRAFORM', defaultValue: false, description: 'Check To Plan Terraform Changes')
-            booleanParam(name: 'APPLY_TERRAFORM', defaultValue: false, description: 'Check To Apply Terraform Changes')
-            booleanParam(name: 'DESTROY_TERRAFORM', defaultValue: false, description: 'Check To Apply Terraform Changes')
+            booleanParam(name: 'VALIDATE_TERRAFORM', defaultValue: false, description: 'Check to validate Terraform configurations for syntax errors and consistency')
+            booleanParam(name: 'PLAN_TERRAFORM', defaultValue: false, description: 'Check to plan Terraform changes and preview the infrastructure modifications')
+            booleanParam(name: 'APPLY_TERRAFORM', defaultValue: false, description: 'Check to apply Terraform changes and provision the EKS cluster on AWS')
+            booleanParam(name: 'DESTROY_TERRAFORM', defaultValue: false, description: 'Check to destroy the Terraform-managed EKS cluster and related resources')
     }
 
     stages {
