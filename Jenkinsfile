@@ -26,10 +26,10 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                retry(2) {
+                retry(3) {
                     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-vgs']]) {
                         sh 'echo "=================Terraform Init=================="'
-                        sh 'terraform init -input=false'
+                        sh 'sleep 5 && terraform init -input=false'
                     }
                 }
             }
